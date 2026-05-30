@@ -1,0 +1,15 @@
+service-account.json
+ragstoriches-493115-436a51d3b5f4.json
+*-service-account*.json
+.env
+backend/.env
+__pycache__
+.DS_Store
+node_modules
+.next
+*.pyc
+*.pyo
+.venv
+venv
+.env.local
+.env.*.local
