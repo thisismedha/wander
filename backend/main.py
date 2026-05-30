@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from backend.routers import generate, tweak
+from backend.routers import explore, generate, tweak
 
 app = FastAPI(title="Wander — Trip Planner API", version="0.1.0")
 
@@ -12,6 +12,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+app.include_router(explore.router)
 app.include_router(generate.router)
 app.include_router(tweak.router)
 
