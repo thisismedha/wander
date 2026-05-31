@@ -42,9 +42,9 @@ function formatDateRange(start: string, end: string): string {
   const s = new Date(start + "T00:00:00");
   const e = new Date(end + "T00:00:00");
   if (s.getMonth() === e.getMonth() && s.getFullYear() === e.getFullYear()) {
-    return `${MONTHS[s.getMonth()]} ${s.getDate()}–${e.getDate()}`;
+    return `${MONTHS[s.getMonth()]} ${s.getDate()}–${e.getDate()} ${s.getFullYear()}`;
   }
-  return `${MONTHS[s.getMonth()]} ${s.getDate()} – ${MONTHS[e.getMonth()]} ${e.getDate()}`;
+  return `${MONTHS[s.getMonth()]} ${s.getDate()} – ${MONTHS[e.getMonth()]} ${e.getDate()} ${e.getFullYear()}`;
 }
 
 function calcDays(start: string, end: string): number {

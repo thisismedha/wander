@@ -9,10 +9,27 @@ class ActivitySlot(BaseModel):
     style_fit: str = Field(..., description="One sentence: why this suits the travel style")
 
 
+# AI concept (TRIP-015): schema-driven conditional output — WeatherEstimate is Optional;
+# the LLM populates it from historical climate knowledge only when real dates are provided
+class WeatherEstimate(BaseModel):
+    high_c: int = Field(..., description="Typical daytime high in °C for this destination and date")
+    low_c: int = Field(..., description="Typical overnight low in °C for this destination and date")
+    description: str = Field(..., description="One-line condition, e.g. 'Warm and sunny' or 'Hot with afternoon thunderstorms'")
+    icon: str = Field(..., description="Single weather emoji: ☀️ ⛅ 🌤️ 🌧️ ⛈️ 🌩️ 🌫️ ❄️ 🌬️ — choose the one that best matches the condition")
+
+
 class ItineraryDay(BaseModel):
     day_number: int
     date_label: str = Field(..., description="e.g. 'Day 1' or 'Monday, June 10'")
     slots: List[ActivitySlot]
+    weather: Optional[WeatherEstimate] = Field(
+        None,
+        description=(
+            "Climate estimate for this day. Populate only when real travel dates are provided "
+            "(not days-only). Use historical averages for the destination and month. "
+            "Set to null if no real dates were given."
+        ),
+    )
 
 
 class Itinerary(BaseModel):
@@ -49,6 +66,8 @@ class TripInputs(BaseModel):
     explore_scope: Optional[List[Literal["domestic", "international"]]] = None
     # TRIP-014: free-text region hint scopes destination suggestions geographically
     region_hint: Optional[str] = None
+    # Destinations already shown on a previous Explore refresh — excluded from next suggestions
+    excluded_destinations: Optional[List[str]] = None
 
 
 class TweakRequest(BaseModel):

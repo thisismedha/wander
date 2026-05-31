@@ -19,6 +19,7 @@ async def explore_destinations(inputs: TripInputs) -> ExploreSuggestions:
             home_city=inputs.home_city,
             explore_scope=inputs.explore_scope,
             region_hint=inputs.region_hint,
+            excluded_destinations=inputs.excluded_destinations,
         )
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc)) from exc

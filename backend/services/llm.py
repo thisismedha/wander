@@ -36,8 +36,17 @@ class ItineraryService:
             location=os.getenv("GCP_LOCATION", "us-central1"),
             credentials=_credentials,
         )
+        # AI concept: higher temperature for explore gives varied suggestions on each call;
+        # itinerary generation stays at 0 for consistent, structured day-by-day output
+        explore_llm = ChatVertexAI(
+            model_name=model,
+            temperature=1.0,
+            project=os.getenv("GCP_PROJECT_ID"),
+            location=os.getenv("GCP_LOCATION", "us-central1"),
+            credentials=_credentials,
+        )
         self.structured_llm = llm.with_structured_output(Itinerary)
-        self.explore_llm = llm.with_structured_output(ExploreSuggestions)
+        self.explore_llm = explore_llm.with_structured_output(ExploreSuggestions)
 
     async def generate(
         self,
@@ -65,10 +74,11 @@ class ItineraryService:
         home_city: Optional[str] = None,
         explore_scope: Optional[list] = None,
         region_hint: Optional[str] = None,
+        excluded_destinations: Optional[list] = None,
     ) -> ExploreSuggestions:
         messages = [
             SystemMessage(content=EXPLORE_SYSTEM_PROMPT),
-            HumanMessage(content=build_explore_prompt(duration, style, budget, nationality, home_city, explore_scope, region_hint)),
+            HumanMessage(content=build_explore_prompt(duration, style, budget, nationality, home_city, explore_scope, region_hint, excluded_destinations)),
         ]
         return await self.explore_llm.ainvoke(messages)
 

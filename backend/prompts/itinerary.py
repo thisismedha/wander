@@ -49,6 +49,14 @@ Holiday awareness (when home_city and real travel dates — not days-only — ar
   atmosphere, or special events) but keep the holiday_note as a concise summary.
 - If no public holidays are found within the travel window, set holiday_note to null.
 - If travel dates are days-only (no real calendar dates), set holiday_note to null.
+
+Weather estimates (when real travel dates are provided):
+- For each day, populate the weather field with a climate estimate based on your knowledge
+  of typical conditions for the destination, month, and season.
+- high_c: typical daytime high in °C. low_c: typical overnight low in °C.
+- description: one concise phrase, e.g. "Warm and sunny", "Hot and humid with afternoon showers".
+- icon: a single emoji that best represents the day's conditions.
+- If travel dates are days-only (no real calendar dates), set weather to null on every day.
 """.strip()
 
 

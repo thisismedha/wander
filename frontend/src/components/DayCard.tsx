@@ -20,11 +20,21 @@ export default function DayCard({ day }: Props) {
   return (
     <div className="rounded-2xl border border-slate-200 bg-white shadow-sm">
       {/* Day header */}
-      <div className="flex items-center gap-3 border-b border-slate-100 px-5 py-4">
-        <span className="flex h-8 w-8 items-center justify-center rounded-full bg-indigo-600 text-xs font-bold text-white">
-          {day.day_number}
-        </span>
-        <h3 className="text-base font-semibold text-slate-900">{day.date_label}</h3>
+      <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
+        <div className="flex items-center gap-3">
+          <span className="flex h-8 w-8 items-center justify-center rounded-full bg-indigo-600 text-xs font-bold text-white">
+            {day.day_number}
+          </span>
+          <h3 className="text-base font-semibold text-slate-900">{day.date_label}</h3>
+        </div>
+        {day.weather && (
+          <div className="text-right">
+            <div className="text-sm font-medium text-slate-700">
+              {day.weather.icon} {day.weather.high_c}° / {day.weather.low_c}° · {day.weather.description}
+            </div>
+            <div className="text-xs text-slate-400">typical for this time of year</div>
+          </div>
+        )}
       </div>
 
       {/* Slots */}

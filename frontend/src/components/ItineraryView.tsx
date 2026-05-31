@@ -19,7 +19,7 @@ export default function ItineraryView({ itinerary }: Props) {
       </div>
 
       {/* Visa note */}
-      {itinerary.visa_note && (
+      {itinerary.visa_note && itinerary.visa_note !== "null" && (
         <div className="rounded-xl border border-amber-200 bg-amber-50 px-5 py-4 text-sm text-amber-800">
           <span className="mr-1 font-semibold">Visa advisory:</span>
           {itinerary.visa_note}
@@ -29,7 +29,7 @@ export default function ItineraryView({ itinerary }: Props) {
       {/* Holiday note — teal panel, distinct from amber visa note
           AI concept (TRIP-009): contextual calendar reasoning — LLM cross-references travel dates
           against public holiday knowledge at origin and destination */}
-      {itinerary.holiday_note && (
+      {itinerary.holiday_note && itinerary.holiday_note !== "null" && (
         <div className="rounded-xl border border-teal-200 bg-teal-50 px-5 py-4 text-sm text-teal-800">
           <span className="mr-1 font-semibold">Public holidays during your trip:</span>
           {itinerary.holiday_note}

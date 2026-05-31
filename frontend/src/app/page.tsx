@@ -93,7 +93,8 @@ export default function Home() {
 
   function handleExploreRefresh() {
     if (!originalInputs) return;
-    callExplore(originalInputs);
+    const excluded = exploreSuggestions?.suggestions.map((s) => s.destination) ?? [];
+    callExplore({ ...originalInputs, excluded_destinations: excluded });
   }
 
   async function handleTweak(instruction: string) {

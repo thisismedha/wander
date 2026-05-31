@@ -17,10 +17,18 @@ export interface ActivitySlot {
   style_fit: string;
 }
 
+export interface WeatherEstimate {
+  high_c: number;
+  low_c: number;
+  description: string;
+  icon: string;
+}
+
 export interface ItineraryDay {
   day_number: number;
   date_label: string;
   slots: ActivitySlot[];
+  weather?: WeatherEstimate | null;
 }
 
 export interface Itinerary {
@@ -45,6 +53,7 @@ export interface TripInputs {
   home_city?: string;
   explore_scope?: ("domestic" | "international")[];
   region_hint?: string;
+  excluded_destinations?: string[];
 }
 
 export interface TweakRequest {

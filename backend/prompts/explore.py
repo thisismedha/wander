@@ -10,6 +10,10 @@ Rules:
 - Vary the suggestions: different regions, vibes, or experiences.
 - Keep each rationale to 2-3 sentences.
 - If a domestic/international scope filter is specified, strictly honour it.
+- If exact travel dates are provided (not just a number of days), factor in seasonal suitability.
+  Prefer destinations in their good or shoulder season during those dates.
+  If a destination is in its rainy, extreme heat, or off-peak season, say so briefly in the rationale
+  so the traveller can make an informed choice.
 """.strip()
 
 
@@ -21,6 +25,7 @@ def build_explore_prompt(
     home_city: Optional[str] = None,
     explore_scope: Optional[List[str]] = None,
     region_hint: Optional[str] = None,
+    excluded_destinations: Optional[List[str]] = None,
 ) -> str:
     nat_str = f"Passport nationality: {nationality}" if nationality else "Nationality: not provided"
     home_str = f"\nHome city: {home_city}" if home_city else ""
@@ -53,6 +58,10 @@ def build_explore_prompt(
 
     style_str = f"Travel style: {style}" if style else "Travel style: not specified"
     budget_str = f"Budget tier: {budget}" if budget else "Budget tier: not specified"
+    exclude_str = (
+        f"\nDo NOT suggest any of these destinations (already shown): {', '.join(excluded_destinations)}."
+        if excluded_destinations else ""
+    )
 
     return f"""
 The traveller hasn't chosen a destination. Suggest 3 destinations that suit their preferences.
@@ -60,7 +69,7 @@ The traveller hasn't chosen a destination. Suggest 3 destinations that suit thei
 Travel duration: {duration}
 {style_str}
 {budget_str}
-{nat_str}{home_str}{region_str}{scope_instruction}
+{nat_str}{home_str}{region_str}{scope_instruction}{exclude_str}
 
 Return exactly 3 destination suggestions with rationale for each.
 """.strip()
