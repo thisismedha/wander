@@ -273,6 +273,7 @@ Ideas captured but not yet assigned to a release. Review at each backlog refinem
 | Trip readiness score / progress tracker | V2 (tied to checklist epic) |
 | AI that learns your travel style over time | V3+ (needs user accounts first — V2 concern) |
 | Inline booking checklist per activity | Assigned to V2 EPIC-V2-01b (TRIP-V2-11/12/13). LLM flags booking_required + booking_note on each ActivitySlot; checkbox state client-side; summary count optional. |
+| Multi-location itinerary (trip clubbing) | V2+. User can combine multiple destinations into one itinerary (e.g. Tokyo + Kyoto + Osaka). Requires itinerary stitching logic, inter-city transport days, and per-city day allocation. Potentially a new "multi-city" mode on the Plan form. |
 
 ---
 

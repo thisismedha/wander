@@ -599,7 +599,58 @@ The Pydantic schema enforces the structure; the LLM fills values from historical
 
 ---
 
-*Phase 2 — Definition: Complete (updated with TRIP-015)*
+*Phase 2 — Definition: Complete (updated with TRIP-015, TRIP-016, TRIP-017)*
 *Phase 3 — Design: Complete*
-*Build order: TRIP-012 → TRIP-013 → TRIP-014 → TRIP-015*
+*Build order: TRIP-012 → TRIP-013 → TRIP-014 → TRIP-015 → TRIP-016 → TRIP-017*
 *Last updated: May 2026*
+
+---
+
+## 12. TRIP-016 — Best Time to Visit on Days-Only Explore Path
+
+**Story:** As Priya, when I enter a number of days (not real dates) in Explore Mode, I want each destination suggestion to show when the best time to visit is, so I can plan when to go.
+
+**Acceptance Criteria:**
+- AC1: When the user enters a duration in days (not calendar dates), each suggestion card displays a "Best time" note below the rationale.
+- AC2: The note is concise — e.g. "Best: April–October. Avoid July–August if you dislike crowds."
+- AC3: When exact dates are provided, `best_time_to_visit` is null and no "Best time" label is shown.
+- AC4: The UI guards against the LLM returning the string `"null"` — the label only renders when the value is a non-empty, non-`"null"` string.
+- AC5: The note is visually de-emphasised (smaller text, muted colour) relative to the rationale.
+
+**AI concept (TRIP-016):** Schema-driven conditional output — the LLM populates `best_time_to_visit` only on the days-only path. When real dates are given, seasonal context goes into the rationale instead.
+
+**Design decisions:**
+- Label: 🗓 **Best time:** followed by the LLM string
+- Rendered as `text-xs text-slate-500` below the rationale
+- Field is `Optional[str]` on both backend Pydantic model and frontend TypeScript interface
+
+---
+
+## 13. TRIP-017 — 4–6 Suggestions; Domestic + International Split
+
+**Story:** As Priya, I want 4–6 destination suggestions in Explore Mode, and when I select both domestic and international, I want exactly 3 of each shown in separate sections.
+
+**Acceptance Criteria:**
+- AC1: Explore Mode returns 4–6 suggestions when a single scope (domestic only, international only, or no filter) is selected.
+- AC2: When both domestic and international are checked, exactly 6 suggestions are returned — 3 domestic and 3 international.
+- AC3: When both scopes are selected, the UI renders two labelled sections: "DOMESTIC" and "INTERNATIONAL".
+- AC4: When a single scope is selected, suggestions render as a flat list (no section headers).
+- AC5: Each suggestion in a split result carries a `trip_type` field (`"domestic"` or `"international"`); `trip_type` is null for non-split results.
+- AC6: The "Try different destinations" refresh respects the split — exclusion list prevents repeating any prior suggestion regardless of type.
+
+**AI concept (TRIP-017):** Schema-driven conditional output — `trip_type` label is populated only when both scopes are requested, enabling the frontend to group results without heuristics.
+
+**Design decisions:**
+- Section headers: `text-xs font-semibold uppercase tracking-wide text-slate-400`
+- Backend enforces count via system prompt rule; Pydantic model validates `Literal["domestic", "international"] | None`
+- Frontend detects split mode via `suggestions.some((s) => s.trip_type != null)`
+
+---
+
+## 14. Decision Log — additions from TRIP-016 and TRIP-017
+
+| Decision | Rationale | Alternatives Considered | Date |
+|---|---|---|---|
+| `best_time_to_visit` null when exact dates given | Seasonal info goes into rationale on the dates path — avoid double-rendering | Always populate best_time (redundant with rationale) | May 2026 |
+| `trip_type` field on suggestion, not inferred by frontend | Frontend can't reliably infer domestic vs. international without home city context | Frontend string-match against home country name | May 2026 |
+| Exactly 6 (3+3) when both scopes checked | Clean symmetric layout; prevents uneven grouping (e.g. 4 domestic, 1 international) | Variable count per group (messier UI) | May 2026 |
