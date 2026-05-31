@@ -11,6 +11,30 @@ interface Props {
   refreshing: boolean;
 }
 
+function SuggestionCard({ s, onSelect }: { s: DestinationSuggestion; onSelect: (d: string) => void }) {
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:border-indigo-300 hover:shadow-md">
+      <div className="flex items-start justify-between gap-4">
+        <div className="flex-1">
+          <h3 className="text-lg font-semibold text-slate-900">{s.destination}</h3>
+          <p className="mt-1 text-sm leading-relaxed text-slate-600">{s.rationale}</p>
+          {s.best_time_to_visit && s.best_time_to_visit !== "null" && (
+            <p className="mt-2 text-xs text-slate-500">
+              🗓 <span className="font-medium">Best time:</span> {s.best_time_to_visit}
+            </p>
+          )}
+        </div>
+        <button
+          onClick={() => onSelect(s.destination)}
+          className="shrink-0 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+        >
+          Plan this trip
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export default function ExploreView({
   suggestions,
   originalInputs,
@@ -18,6 +42,11 @@ export default function ExploreView({
   onRefresh,
   refreshing,
 }: Props) {
+  const isSplit = suggestions.some((s) => s.trip_type != null);
+  const domestic = isSplit ? suggestions.filter((s) => s.trip_type === "domestic") : [];
+  const international = isSplit ? suggestions.filter((s) => s.trip_type === "international") : [];
+  const count = suggestions.length;
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -25,33 +54,32 @@ export default function ExploreView({
         <h2 className="text-2xl font-bold text-slate-900">Where should you go?</h2>
         <p className="mt-1 text-slate-500">
           Based on your{" "}
-          <span className="font-medium capitalize">{originalInputs.style ?? "your"}</span> style — here are
-          three ideas.
+          <span className="font-medium capitalize">{originalInputs.style ?? "your"}</span> style — here are{" "}
+          {count} idea{count !== 1 ? "s" : ""}.
         </p>
       </div>
 
-      {/* Suggestion cards */}
-      <div className="space-y-4">
-        {suggestions.map((s, idx) => (
-          <div
-            key={idx}
-            className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:border-indigo-300 hover:shadow-md"
-          >
-            <div className="flex items-start justify-between gap-4">
-              <div className="flex-1">
-                <h3 className="text-lg font-semibold text-slate-900">{s.destination}</h3>
-                <p className="mt-1 text-sm leading-relaxed text-slate-600">{s.rationale}</p>
-              </div>
-              <button
-                onClick={() => onSelect(s.destination)}
-                className="shrink-0 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
-              >
-                Plan this trip
-              </button>
+      {/* Suggestion cards — grouped when domestic/international split, flat otherwise */}
+      {isSplit ? (
+        <div className="space-y-6">
+          {domestic.length > 0 && (
+            <div className="space-y-3">
+              <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-400">Domestic</h3>
+              {domestic.map((s, idx) => <SuggestionCard key={idx} s={s} onSelect={onSelect} />)}
             </div>
-          </div>
-        ))}
-      </div>
+          )}
+          {international.length > 0 && (
+            <div className="space-y-3">
+              <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-400">International</h3>
+              {international.map((s, idx) => <SuggestionCard key={idx} s={s} onSelect={onSelect} />)}
+            </div>
+          )}
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {suggestions.map((s, idx) => <SuggestionCard key={idx} s={s} onSelect={onSelect} />)}
+        </div>
+      )}
 
       {/* Refresh */}
       <div className="text-center">

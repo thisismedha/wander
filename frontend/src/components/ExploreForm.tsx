@@ -221,6 +221,72 @@ export default function ExploreForm({ onSubmit, loading }: Props) {
         {errors.style && <p className={errorClass}>{errors.style}</p>}
       </div>
 
+      {/* Home city — optional; appears right after Travel theme as it unlocks scope filtering
+          AI concept (TRIP-009): conditional prompt branching — scope changes the LLM's destination pool */}
+      <div>
+        <label htmlFor="homeCity" className={optionalLabelClass}>
+          Home city
+          <span className="ml-1 font-normal text-slate-400 text-xs">— filters domestic / international</span>
+        </label>
+        <input
+          id="homeCity"
+          type="text"
+          placeholder="e.g. London, UK"
+          value={homeCity}
+          onChange={(e) => {
+            const val = e.target.value;
+            setHomeCity(val);
+            // Auto-check both scopes when home city is first filled; clear when emptied
+            if (val.trim() && exploreScope.length === 0) {
+              setExploreScope(["domestic", "international"]);
+            } else if (!val.trim()) {
+              setExploreScope([]);
+            }
+          }}
+          className={inputClass}
+        />
+      </div>
+
+      {/* Domestic / international filter — only shown when home city is filled */}
+      {homeCity.trim() && (
+        <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+          <p className="mb-2 text-xs font-medium text-slate-500 uppercase tracking-wide">
+            Trip type
+          </p>
+          <div className="flex gap-4">
+            {(["domestic", "international"] as const).map((scope) => (
+              <label key={scope} className="flex cursor-pointer items-center gap-2 text-sm text-slate-700">
+                <input
+                  type="checkbox"
+                  checked={exploreScope.includes(scope)}
+                  onChange={() => toggleScope(scope)}
+                  className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                />
+                <span className="capitalize">{scope}</span>
+              </label>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Nationality — only shown when international scope is selected */}
+      {exploreScope.includes("international") && (
+        <div>
+          <label htmlFor="nationality" className={optionalLabelClass}>
+            Passport Nationality
+            <span className="ml-1 font-normal text-slate-400 text-xs">— for visa advisory</span>
+          </label>
+          <input
+            id="nationality"
+            type="text"
+            placeholder="e.g. Australian"
+            value={nationality}
+            onChange={(e) => setNationality(e.target.value)}
+            className={inputClass}
+          />
+        </div>
+      )}
+
       {/* ── Optional fields ───────────────────────────────── */}
 
       <div className="flex items-center gap-3 pt-1">
@@ -283,62 +349,6 @@ export default function ExploreForm({ onSubmit, loading }: Props) {
             <option key={b} value={b}>{b.charAt(0).toUpperCase() + b.slice(1)}</option>
           ))}
         </select>
-      </div>
-
-      {/* Home city — optional; enables domestic/international checkboxes in ExploreView */}
-      <div>
-        <label htmlFor="homeCity" className={optionalLabelClass}>
-          Home city
-          <span className="ml-1 font-normal text-slate-400 text-xs">— filters domestic / international</span>
-        </label>
-        <input
-          id="homeCity"
-          type="text"
-          placeholder="e.g. London, UK"
-          value={homeCity}
-          onChange={(e) => setHomeCity(e.target.value)}
-          className={inputClass}
-        />
-      </div>
-
-      {/* Domestic / international filter — only shown when home city is filled
-          AI concept (TRIP-009): conditional prompt branching — scope changes the LLM's destination pool */}
-      {homeCity.trim() && (
-        <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
-          <p className="mb-2 text-xs font-medium text-slate-500 uppercase tracking-wide">
-            Trip type
-          </p>
-          <div className="flex gap-4">
-            {(["domestic", "international"] as const).map((scope) => (
-              <label key={scope} className="flex cursor-pointer items-center gap-2 text-sm text-slate-700">
-                <input
-                  type="checkbox"
-                  checked={exploreScope.includes(scope)}
-                  onChange={() => toggleScope(scope)}
-                  className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
-                />
-                <span className="capitalize">{scope}</span>
-              </label>
-            ))}
-          </div>
-          <p className="mt-1.5 text-xs text-slate-400">Leave both unchecked for all destinations</p>
-        </div>
-      )}
-
-      {/* Nationality — optional */}
-      <div>
-        <label htmlFor="nationality" className={optionalLabelClass}>
-          Passport Nationality
-          <span className="ml-1 font-normal text-slate-400 text-xs">— for visa advisory</span>
-        </label>
-        <input
-          id="nationality"
-          type="text"
-          placeholder="e.g. Australian"
-          value={nationality}
-          onChange={(e) => setNationality(e.target.value)}
-          className={inputClass}
-        />
       </div>
 
       <button
