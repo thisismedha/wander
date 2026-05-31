@@ -404,7 +404,202 @@ and validation rules.
 
 ---
 
-*Phase 2 — Definition: Complete*
-*Phase 3 — Design: Complete (all UI/UX decisions locked in Decision Log above; no new components require design review)*
-*Next phase: Build (follow Brief A → B → C in order)*
+---
+
+## 9. TRIP-015 — Daily weather estimates on itinerary day headers
+
+**Story ID:** TRIP-015
+**Title:** Daily weather estimates
+**Priority:** Should (V1.1 polish)
+**Effort:** M
+**Added:** May 2026
+
+---
+
+### Problem
+
+When a user provides exact travel dates, the itinerary day headers show the correct weekday and date (e.g. "Wednesday, July 1") but nothing about expected conditions. A traveller planning a July trip to Lisbon has no idea from the itinerary whether to pack sunscreen or a rain jacket. Weather context — even approximate — meaningfully improves the planning value of the output.
+
+### Solution
+
+Use the LLM's historical climate knowledge to generate a per-day weather estimate for each `ItineraryDay`. The LLM knows typical weather patterns by destination, month, and season. When exact dates are provided, it populates a `weather` field on each day with a high/low temperature pair, a short condition description, and a weather icon (emoji). When only a number of days is provided (no real dates), the field is null — no weather is shown.
+
+**AI concept:** Schema-driven conditional output — `weather` is `Optional` on `ItineraryDay`. The system prompt instructs the LLM to populate it only when real dates are present. The Pydantic schema enforces the structure; the LLM fills the values from climate knowledge.
+
+The UI labels the estimate clearly as "typical for this time of year" so the user understands it is not a live forecast.
+
+---
+
+### Scope
+
+**In scope:**
+- High and low temperature (°C) per day
+- One-line weather condition description (e.g. "Warm and sunny", "Hot with afternoon thunderstorms", "Mild with coastal breeze")
+- Weather icon (emoji: ☀️ ⛅ 🌧️ ⛈️ 🌫️ ❄️ 🌬️)
+- Displayed on the right side of the day header in `DayCard.tsx`
+- Only shown when exact dates were provided (weather is null for days-only trips)
+- A small "typical" label beneath the temperature so the user knows it is a climate average
+
+**Out of scope:**
+- Real-time weather API integration (V2 backlog)
+- UV index, rain percentage, humidity
+- Unit toggle (°C only for V1.1; Fahrenheit option to V2 backlog)
+
+---
+
+### Acceptance Criteria
+
+**When exact dates are provided (date range path):**
+- [ ] Given the user submitted a date range (e.g. July 1–5 2026), when the itinerary renders, then every day header shows a weather estimate on the right: `{icon} {high}°/{low}° · {description}`
+- [ ] Given a day header with weather, when I read it, then I can see: one emoji icon, a high temperature in °C, a low temperature in °C, and a one-line condition description
+- [ ] Given the weather estimate is displayed, when I look beneath the temperature, then I see a label: "typical for this time of year"
+- [ ] Given the LLM returns a `weather` object, when I inspect it, then `high_c` > `low_c` and both are plausible for the destination and month (not obviously wrong, e.g. not 50°C for London)
+
+**When only a number of days is provided (days-only path):**
+- [ ] Given the user submitted "7 days" (no dates), when the itinerary renders, then no weather estimate appears on any day header
+
+**Structure:**
+- [ ] `weather` is `null` on each `ItineraryDay` when days-only path is used
+- [ ] `WeatherEstimate` Pydantic model has: `high_c: int`, `low_c: int`, `description: str`, `icon: str`
+- [ ] Frontend `ItineraryDay` TypeScript type is updated to include `weather?: WeatherEstimate | null`
+
+---
+
+### Design decisions
+
+| Decision | Rationale | Alternatives considered |
+|---|---|---|
+| LLM-estimated, not live API | Forecasts don't exist for dates months away; LLM climate knowledge is honest and sufficient for planning intent | Real API (only 16-day window), Open-Meteo historical (extra backend complexity) |
+| °C only | Destination-first product; most non-US destinations use Celsius | Dual display (adds UI complexity for V1.1) |
+| Emoji icon from LLM | Simple, no icon library dependency, LLM can match icon to condition reliably | SVG icon set mapped from condition string |
+| "Typical for this time of year" label | Honest UX — sets correct expectation that this is a climate average | No label (risks user treating it as a forecast) |
+| Optional on schema | If the LLM fails to populate or dates are days-only, UI silently hides it — no error state needed | Separate weather endpoint |
+
+---
+
+### Claude Code Session Brief — TRIP-015
+
+```
+## Claude Code Session Brief — TRIP-015: Daily Weather Estimates
+
+### Context
+We are in Phase 4 — Build, V1.1. TRIP-012, TRIP-013, TRIP-014 are complete.
+This brief covers TRIP-015 only. Discovery and Definition are in docs/definition-v1.1.md, Section 9.
+
+The feature: when exact travel dates are provided, every day in the itinerary shows a
+weather estimate (high/low °C, emoji icon, condition description) on the right side of the
+day header. Days-only trips show no weather. The estimate is LLM-generated from historical
+climate knowledge, labelled "typical for this time of year."
+
+### What to build
+
+**1. backend/models/itinerary.py**
+Add a new Pydantic model:
+
+  class WeatherEstimate(BaseModel):
+      high_c: int = Field(..., description="Typical daytime high in °C for this destination and date")
+      low_c: int = Field(..., description="Typical overnight low in °C for this destination and date")
+      description: str = Field(..., description="One-line condition, e.g. 'Warm and sunny' or 'Hot with afternoon thunderstorms'")
+      icon: str = Field(..., description="Single weather emoji: ☀️ ⛅ 🌤️ 🌧️ ⛈️ 🌩️ 🌫️ ❄️ 🌬️ — choose the one that best matches the condition")
+
+Add to ItineraryDay:
+  weather: Optional[WeatherEstimate] = Field(
+      None,
+      description=(
+          "Climate estimate for this day. Populate only when real travel dates are provided "
+          "(not days-only). Use historical averages for the destination and month. "
+          "Set to null if no real dates were given."
+      ),
+  )
+
+**2. backend/prompts/itinerary.py — SYSTEM_PROMPT**
+Add to the rules section (after the holiday awareness block):
+
+  Weather estimates (when real travel dates are provided):
+  - For each day, populate the weather field with a climate estimate based on your knowledge
+    of typical conditions for the destination, month, and season.
+  - high_c: typical daytime high in °C. low_c: typical overnight low in °C.
+  - description: one concise phrase, e.g. "Warm and sunny", "Hot and humid with afternoon showers".
+  - icon: a single emoji that best represents the day's conditions.
+  - If travel dates are days-only (no real calendar dates), set weather to null on every day.
+
+**3. frontend/src/types/itinerary.ts**
+Add:
+
+  export interface WeatherEstimate {
+    high_c: number;
+    low_c: number;
+    description: string;
+    icon: string;
+  }
+
+Update ItineraryDay:
+  weather?: WeatherEstimate | null;
+
+**4. frontend/src/components/DayCard.tsx**
+Update the day header row to show weather on the right side when day.weather is present:
+
+  <div className="flex items-center justify-between">
+    <div className="flex items-center gap-3">
+      {/* existing day number badge and date label */}
+    </div>
+    {day.weather && (
+      <div className="text-right">
+        <div className="text-sm font-medium text-slate-700">
+          {day.weather.icon} {day.weather.high_c}° / {day.weather.low_c}°
+        </div>
+        <div className="text-xs text-slate-400">typical for this time of year</div>
+      </div>
+    )}
+  </div>
+
+### Do not change
+- ExploreForm, PlanForm, ExploreView, ItineraryView, TweakInput, ExportButtons
+- /explore, /tweak endpoints
+- Any other backend model fields
+
+### AI concept to log
+"Schema-driven conditional LLM output (TRIP-015): WeatherEstimate is Optional on ItineraryDay.
+The system prompt instructs the LLM to populate it only when real dates are present.
+The Pydantic schema enforces the structure; the LLM fills values from historical climate knowledge
+(backend/models/itinerary.py, backend/prompts/itinerary.py)."
+
+### Definition of Done for this session
+- [ ] WeatherEstimate model added to backend/models/itinerary.py
+- [ ] weather field added to ItineraryDay (Optional, null when days-only)
+- [ ] SYSTEM_PROMPT updated with weather estimate rules
+- [ ] WeatherEstimate TypeScript type added to frontend/src/types/itinerary.ts
+- [ ] ItineraryDay type updated with weather field
+- [ ] DayCard.tsx renders weather on day header right side when present
+- [ ] "typical for this time of year" label beneath temperature
+- [ ] Weather hidden (not rendered) when day.weather is null or undefined
+- [ ] Date-range trip: all day headers show weather
+- [ ] Days-only trip: no weather shown on any day header
+- [ ] No regression on existing itinerary, tweak, or explore flows
+```
+
+---
+
+## 10. AI Concepts Log — additions from TRIP-015
+
+| Concept | Plain English | Where It Appears |
+|---|---|---|
+| **Schema-driven conditional output** | `WeatherEstimate` is `Optional` on `ItineraryDay` — the LLM populates it only when real dates are present, and leaves it null otherwise. The Pydantic schema enforces the shape; the system prompt rule enforces the condition. | TRIP-015: `backend/models/itinerary.py`, `backend/prompts/itinerary.py` |
+
+---
+
+## 11. Decision Log — additions from TRIP-015
+
+| Decision | Rationale | Alternatives Considered | Date |
+|---|---|---|---|
+| LLM-estimated weather, not real API | No forecast API covers dates months ahead; LLM climate knowledge is sufficient for planning intent and requires zero external dependency | Open-Meteo historical averages (extra backend complexity), real forecast API (16-day limit only) | May 2026 |
+| °C only for V1.1 | Destination-first product; °F toggle deferred to avoid UI complexity | Dual °C / °F display | May 2026 |
+| Emoji icon output from LLM | No icon library dependency; LLM matches emoji to condition reliably in structured output | SVG icon set mapped from a condition enum | May 2026 |
+| "Typical for this time of year" sub-label | Sets correct user expectation — this is a climate average, not a live forecast | No label (risks being mistaken for a real forecast) | May 2026 |
+
+---
+
+*Phase 2 — Definition: Complete (updated with TRIP-015)*
+*Phase 3 — Design: Complete*
+*Build order: TRIP-012 → TRIP-013 → TRIP-014 → TRIP-015*
 *Last updated: May 2026*

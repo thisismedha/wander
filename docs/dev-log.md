@@ -39,6 +39,82 @@
 
 ---
 
+## 2026-05-31 — Session 5
+**Phase:** Build (polish + refinements) + Backlog
+**Release:** V1.1
+**Sprint:** V1.1 Sprint 2 — Smoke test, polish, TRIP-015
+**Active Story IDs:** TRIP-015 (complete); bug fixes and refinements (no story ID)
+
+### Completed this session
+
+**Smoke test — V1.1 full flow verification**
+- Mode selector (TRIP-012): ✅
+- Plan mode — mandatory fields only, submit, itinerary renders: ✅
+- Party type reflected in output (Family with kids): ✅
+- Visa advisory and holiday note panels: ✅
+- Start over → mode selector: ✅
+- Explore mode — mandatory fields only, 3 suggestions render: ✅
+- Explore → suggestion → itinerary: ✅
+
+**Dead code deletion**
+- `frontend/src/components/TripInputForm.tsx` — confirmed no imports, deleted
+
+**Bug fix: null panels rendering as "null" text**
+- `frontend/src/components/ItineraryView.tsx` — added `!== "null"` guard on `visa_note` and `holiday_note`
+- Root cause: LLM occasionally returns the string `"null"` instead of JSON null; frontend conditional was truthy
+
+**Refinement 1: "Try different destinations" returns same results**
+- Root cause: `temperature=0` on the explore LLM + identical prompt = deterministic identical output
+- Fix: separate `explore_llm` instance at `temperature=1.0` in `backend/services/llm.py`
+- Fix: `excluded_destinations` field added to `TripInputs` (backend model + TS type)
+- Fix: `build_explore_prompt()` in `backend/prompts/explore.py` emits "Do not suggest: X, Y, Z" when exclusions provided
+- Fix: `handleExploreRefresh` in `frontend/src/app/page.tsx` passes current suggestion names as `excluded_destinations`
+- AI concept: **Temperature as creative diversity (TRIP-014 refinement)** — itinerary LLM stays at `temperature=0` for consistent structured output; explore LLM uses `temperature=1.0` to maximise suggestion variety
+
+**Refinement 2: Seasonal awareness in Explore with exact dates**
+- `backend/prompts/explore.py` `EXPLORE_SYSTEM_PROMPT` — added rule: when exact dates provided, factor in seasonal suitability and mention it in the rationale
+- Verified: LLM now flags rainy season, peak season, shoulder season explicitly in each rationale
+
+**Bug fix: Incorrect weekday labels when exact dates provided**
+- Root cause: `formatDateRange()` in both `PlanForm.tsx` and `ExploreForm.tsx` produced "July 1–5" without the year — LLM couldn't calculate correct weekdays
+- Fix: year appended to output string e.g. "July 1–5 2026" — LLM now correctly outputs "Wednesday, July 1"
+
+**TRIP-015 — Daily weather estimates**
+- `backend/models/itinerary.py` — new `WeatherEstimate` Pydantic model (`high_c`, `low_c`, `description`, `icon`); `weather: Optional[WeatherEstimate]` added to `ItineraryDay`
+- `backend/prompts/itinerary.py` — weather estimate rules added to `SYSTEM_PROMPT`: populate from historical climate knowledge when real dates provided, null when days-only
+- `frontend/src/types/itinerary.ts` — `WeatherEstimate` interface + `weather` field on `ItineraryDay`
+- `frontend/src/components/DayCard.tsx` — day header updated: weather shown right-aligned when `day.weather` present (`icon high°/low° · description` + "typical for this time of year" sub-label)
+- AI concept: **Schema-driven conditional LLM output (TRIP-015)** — `WeatherEstimate` is `Optional`; system prompt rule gates population on real dates. Pydantic schema enforces structure; LLM fills values from climate knowledge.
+- Brief written in `docs/definition-v1.1.md` Section 9 before build began (SDLC compliant)
+
+**Backlog**
+- TRIP-V2-11/12/13 — Inline booking checklist per activity added to `docs/product-roadmap.md` EPIC-V2-01b
+- Capture: LLM flags `booking_required` + `booking_note` on each `ActivitySlot`; checkbox state client-side; summary count optional
+
+### In progress (exact state)
+- None — all session work complete
+
+### Blockers / open questions
+- Worktree branch (`claude/clever-dhawan-0f2531`) has diverged from `origin/main`; code has never been merged to main. Recommend merging or rebasing before next session to avoid long-lived branch drift.
+- Days-only path weather null check not visually verified in this session (code path confirmed correct by schema + prompt logic; recommend smoke test at start of next session)
+
+### Decisions made
+- `temperature=1.0` for explore LLM only — itinerary LLM stays at 0 for structural consistency
+- Weather from LLM (not API) for V1.1 — no forecast API covers dates months ahead; LLM climate averages are sufficient and honest
+- Emoji icon emitted directly by LLM — no icon library dependency; works reliably in structured output
+
+### AI concepts touched
+- **Temperature as creative diversity:** explore LLM at `temperature=1.0` vs itinerary LLM at `temperature=0` — two different goals, two different settings (`backend/services/llm.py`)
+- **Schema-driven conditional output (TRIP-015):** `WeatherEstimate` is `Optional` on `ItineraryDay`; system prompt rule gates population on real dates (`backend/models/itinerary.py`, `backend/prompts/itinerary.py`)
+- **Seasonal reasoning in explore:** system prompt instructs LLM to evaluate destination suitability against travel month — peak, shoulder, rainy season flagged in rationale (`backend/prompts/explore.py`)
+
+### Next session focus
+- Merge `claude/clever-dhawan-0f2531` into `main` (or rebase) — long-lived branch drift is a risk
+- Smoke test days-only path confirms no weather shown
+- Deployment: backend to Cloud Run, frontend to Vercel, lock CORS to Vercel domain
+
+---
+
 ## 2026-05-31 — Session 4
 **Phase:** Build (V1.1 complete) + Discovery/Definition (V1.1)
 **Release:** V1.1

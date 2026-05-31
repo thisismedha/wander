@@ -37,6 +37,7 @@ trip-planner/
 ├── CLAUDE.md                     # ← you are here (read at every session start)
 ├── docs/
 │   ├── dev-log.md                # Daily session log — read this before every session
+│   ├── product-roadmap.md        # Living roadmap — V1 through V3 release themes and epics
 │   ├── discovery-mvp.md          # Phase 1 output — personas, assumptions, problem statement
 │   ├── definition-mvp.md         # Phase 2 output — epics, stories, ACs, Sprint briefs
 │   └── decisions/                # One file per significant architectural decision
