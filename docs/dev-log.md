@@ -39,6 +39,44 @@
 
 ---
 
+## 2026-05-31 — Session 6
+
+**Phase:** Build
+**Release:** V1.1
+**Sprint:** V1.1 Sprint 3 — TRIP-016, TRIP-017, ExploreForm refinements
+**Active Story IDs:** TRIP-016 (complete), TRIP-017 (complete)
+
+### What was completed
+- **TRIP-016:** `best_time_to_visit` field added to `DestinationSuggestion` (backend Pydantic model + frontend TS type). LLM populates on days-only path; null when exact dates given. `ExploreView` renders 🗓 Best time label below rationale with `"null"` string guard.
+- **TRIP-017:** Explore now returns 4–6 suggestions. When both domestic + international checked → exactly 3 each. `trip_type` field added to model. `ExploreView` renders grouped DOMESTIC / INTERNATIONAL sections when split, flat list otherwise.
+- **ExploreForm refinements:** Home city moved after Travel theme; auto-checks both domestic+international when home city first filled; Passport Nationality only shown when international is checked; placed right after Trip Type.
+- Definitions for TRIP-016 and TRIP-017 written in `docs/definition-v1.1.md` (Sections 12–14).
+- `docs/product-roadmap.md` updated: multi-location itinerary added to backlog; EPIC-V2-01b (inline booking checklist) added.
+- Browser-verified: days-only path shows best_time_to_visit; grouped sections render correctly.
+- All changes committed and pushed (`claude/clever-dhawan-0f2531` + `main`).
+
+### In progress
+- Nothing in flight. Branch `claude/clever-dhawan-0f2531` is ahead of origin/main — merge to main pending.
+
+### Blockers / open questions
+- Worktree branch has diverged from main (4 commits vs. 2). Should be merged to main before next feature work.
+
+### Decisions made
+- `best_time_to_visit` null on exact-dates path — seasonal info goes into rationale instead (avoids double-rendering).
+- `trip_type` set by LLM, not inferred by frontend — frontend can't know home country without home city context.
+- Exactly 6 (3+3) when both scopes checked — symmetric layout, enforced via system prompt rule.
+
+### AI concepts touched
+- **TRIP-016:** Schema-driven conditional output — optional field populated only on days-only path
+- **TRIP-017:** Schema-driven conditional output — `trip_type` label enables frontend grouping without heuristics
+
+### Next session focus
+1. Merge `claude/clever-dhawan-0f2531` into `main` and clean up worktree
+2. Deploy: backend to Cloud Run, frontend to Vercel
+3. Start next V1 story (TRIP-V1-02 smart timing, or TRIP-003 visa advisory — check roadmap priority)
+
+---
+
 ## 2026-05-31 — Session 5
 **Phase:** Build (polish + refinements) + Backlog
 **Release:** V1.1
