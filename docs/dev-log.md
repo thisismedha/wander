@@ -39,6 +39,37 @@
 
 ---
 
+## 2026-05-31 — Session 7
+
+**Phase:** Build (refinement)
+**Release:** V1.1
+**Sprint:** V1.1 — polish
+**Active Story IDs:** No formal story ID — UI refinement
+
+### What was completed
+- Loading state on "Plan this trip" button in ExploreView: clicked card flips to spinner + "Planning…", all other cards disable so the user can't double-click while the itinerary generates. Wired via new `generating` prop passed from `page.tsx`.
+- Plan mode submit button spinner was already wired (confirmed working — no change needed).
+- Dining suggestions added to backlog in `docs/product-roadmap.md`: V2 idea for LLM-surfaced meal slots per day (breakfast/lunch/dinner) tied to travel style and budget; pairs with inline booking checklist (TRIP-V2-11).
+- Merged `claude/clever-dhawan-0f2531` into `main`. All V1.1 code now on main.
+
+### In progress
+- Nothing in flight.
+
+### Blockers / open questions
+- None.
+
+### Decisions made
+- Disable all other cards (not just the clicked one) while generating — prevents accidental double-selection mid-flight.
+
+### AI concepts touched
+- None this session.
+
+### Next session focus
+1. Deploy: backend to Cloud Run, frontend to Vercel
+2. Pick up next V1 story — TRIP-V1-02 (smart timing) or TRIP-003 (visa advisory)
+
+---
+
 ## 2026-05-31 — Session 6
 
 **Phase:** Build
