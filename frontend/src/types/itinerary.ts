@@ -30,14 +30,21 @@ export interface Itinerary {
   budget_tier: string;
   days: ItineraryDay[];
   visa_note?: string | null;
+  holiday_note?: string | null;
 }
+
+export type PartyType = "solo" | "couple" | "small_group" | "family_with_kids";
 
 export interface TripInputs {
   destination?: string;
   duration: string;
-  style: TravelStyle | string;
-  budget: BudgetTier | string;
+  style?: TravelStyle | string;
+  budget?: BudgetTier | string;
   nationality?: string;
+  party_type?: PartyType;
+  home_city?: string;
+  explore_scope?: ("domestic" | "international")[];
+  region_hint?: string;
 }
 
 export interface TweakRequest {

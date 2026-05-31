@@ -16,10 +16,10 @@ const BUDGET_TIERS = ["budget", "mid-range", "luxury"];
 
 // TRIP-010: prompt enrichment — party type shapes accommodation and activity suitability
 const PARTY_OPTIONS: { value: PartyType; label: string; description: string }[] = [
-  { value: "solo",             label: "Solo",                description: "Just me" },
-  { value: "couple",           label: "Couple",              description: "2 people" },
-  { value: "small_group",      label: "Small group (3–6)",   description: "Friends or colleagues" },
-  { value: "family_with_kids", label: "Family with kids",    description: "Adults + children" },
+  { value: "solo",             label: "Solo",               description: "Just me" },
+  { value: "couple",           label: "Couple",             description: "2 people" },
+  { value: "small_group",      label: "Small group (3–6)",  description: "Friends or colleagues" },
+  { value: "family_with_kids", label: "Family with kids",   description: "Adults + children" },
 ];
 
 const MONTHS = [
@@ -30,13 +30,11 @@ const MONTHS = [
 interface Props {
   onSubmit: (inputs: TripInputs) => void;
   loading: boolean;
-  exploreModeHint?: boolean;
 }
 
 interface FormErrors {
   duration?: string;
   style?: string;
-  budget?: string;
 }
 
 function formatDateRange(start: string, end: string): string {
@@ -54,23 +52,30 @@ function calcDays(start: string, end: string): number {
   return Math.round((e.getTime() - s.getTime()) / (1000 * 60 * 60 * 24));
 }
 
-export default function TripInputForm({ onSubmit, loading, exploreModeHint = false }: Props) {
-  const [destination, setDestination] = useState("");
-  const [homeCity, setHomeCity] = useState("");
+export default function ExploreForm({ onSubmit, loading }: Props) {
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [daysInput, setDaysInput] = useState("");
   const [style, setStyle] = useState("");
-  const [budget, setBudget] = useState("");
-  const [nationality, setNationality] = useState("");
+  const [regionHint, setRegionHint] = useState("");
   const [partyType, setPartyType] = useState<PartyType>("solo");
+  const [budget, setBudget] = useState("");
+  const [homeCity, setHomeCity] = useState("");
+  const [nationality, setNationality] = useState("");
+  const [exploreScope, setExploreScope] = useState<("domestic" | "international")[]>([]);
   const [errors, setErrors] = useState<FormErrors>({});
 
-  // Calendar mode: user has touched either date field
+  // AI concept (TRIP-011): input schema design — date range unlocks calendar reasoning;
+  // days-only produces a duration-only prompt path
   const calendarActive = !!(startDate || endDate);
-  // Calendar complete: both dates filled and range is valid
   const calendarComplete = !!(startDate && endDate && endDate >= startDate);
   const computedDays = calendarComplete ? calcDays(startDate, endDate) : null;
+
+  function toggleScope(value: "domestic" | "international") {
+    setExploreScope((prev) =>
+      prev.includes(value) ? prev.filter((s) => s !== value) : [...prev, value]
+    );
+  }
 
   function clearDurationError() {
     if (errors.duration) setErrors((prev) => ({ ...prev, duration: undefined }));
@@ -85,8 +90,7 @@ export default function TripInputForm({ onSubmit, loading, exploreModeHint = fal
     } else if (!calendarComplete && daysInput && parseInt(daysInput) < 1) {
       e.duration = "Number of days must be at least 1";
     }
-    if (!style) e.style = "Travel style is required";
-    if (!budget) e.budget = "Budget tier is required";
+    if (!style) e.style = "Please select a travel theme";
     return e;
   }
 
@@ -104,74 +108,44 @@ export default function TripInputForm({ onSubmit, loading, exploreModeHint = fal
     }
     setErrors({});
     onSubmit({
-      destination: destination.trim() || undefined,
       duration: buildDurationString(),
       style,
-      budget,
+      budget: budget || undefined,
       nationality: nationality.trim() || undefined,
       party_type: partyType,
       home_city: homeCity.trim() || undefined,
+      explore_scope: exploreScope.length > 0 ? exploreScope : undefined,
+      region_hint: regionHint.trim() || undefined,
     });
   }
 
   const inputClass =
     "w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500";
-  const labelClass = "mb-1 block text-sm font-medium text-slate-700";
+  const mandatoryLabelClass = "mb-1 block text-sm font-medium text-slate-700";
+  const optionalLabelClass = "mb-1 block text-sm font-medium text-slate-500";
   const errorClass = "mt-1 text-xs text-red-600";
   const errorBorder = "border-red-400 focus:border-red-400 focus:ring-red-400";
   const disabledClass = "bg-slate-100 cursor-not-allowed text-slate-400";
 
   return (
     <form onSubmit={handleSubmit} noValidate className="space-y-5">
-      {/* Destination — optional */}
-      <div>
-        <label htmlFor="destination" className={labelClass}>
-          Destination{" "}
-          <span className="font-normal text-slate-400">(optional — leave blank for Explore Mode)</span>
-        </label>
-        <input
-          id="destination"
-          type="text"
-          placeholder="e.g. Tokyo, Japan"
-          value={destination}
-          onChange={(e) => setDestination(e.target.value)}
-          className={inputClass}
-        />
-      </div>
 
-      {/* Home base — optional; enables domestic/international framing, holiday awareness, visa proxy */}
-      <div>
-        <label htmlFor="homeCity" className={labelClass}>
-          Home base{" "}
-          <span className="font-normal text-slate-400">(optional — your departure city)</span>
-        </label>
-        <input
-          id="homeCity"
-          type="text"
-          placeholder="e.g. London, UK"
-          value={homeCity}
-          onChange={(e) => setHomeCity(e.target.value)}
-          className={inputClass}
-        />
-      </div>
+      {/* ── Mandatory fields ─────────────────────────────── */}
 
-      {/* Travel dates / duration — required
-          AI concept (TRIP-011): input schema design — date range unlocks calendar
-          reasoning in the prompt; days-only produces a duration-only prompt path */}
+      {/* Duration — mandatory
+          AI concept (TRIP-011): date range unlocks holiday awareness (TRIP-009);
+          days-only keeps the prompt path duration-only */}
       <div>
-        <label className={labelClass}>
-          Travel Dates <span className="text-red-500">*</span>
+        <label className={mandatoryLabelClass}>
+          How long? <span className="text-red-500">*</span>
         </label>
         <p className="mb-2 text-xs text-slate-400">
           Pick a date range <span className="text-slate-300">|</span> or enter a number of days
         </p>
 
-        {/* Date range row */}
         <div className="flex items-end gap-2">
           <div className="flex-1">
-            <label htmlFor="startDate" className="mb-1 block text-xs text-slate-500">
-              Start date
-            </label>
+            <label htmlFor="startDate" className="mb-1 block text-xs text-slate-500">Start date</label>
             <input
               id="startDate"
               type="date"
@@ -183,9 +157,7 @@ export default function TripInputForm({ onSubmit, loading, exploreModeHint = fal
           </div>
           <span className="mb-2.5 text-slate-300">→</span>
           <div className="flex-1">
-            <label htmlFor="endDate" className="mb-1 block text-xs text-slate-500">
-              End date
-            </label>
+            <label htmlFor="endDate" className="mb-1 block text-xs text-slate-500">End date</label>
             <input
               id="endDate"
               type="date"
@@ -198,19 +170,15 @@ export default function TripInputForm({ onSubmit, loading, exploreModeHint = fal
           </div>
         </div>
 
-        {/* or divider */}
         <div className="my-3 flex items-center gap-3">
           <div className="h-px flex-1 bg-slate-200" />
           <span className="text-xs text-slate-400">or</span>
           <div className="h-px flex-1 bg-slate-200" />
         </div>
 
-        {/* Days field */}
         <div className="flex items-center gap-3">
           <div className="w-36">
-            <label htmlFor="days" className="mb-1 block text-xs text-slate-500">
-              Number of days
-            </label>
+            <label htmlFor="days" className="mb-1 block text-xs text-slate-500">Number of days</label>
             <input
               id="days"
               type="number"
@@ -231,10 +199,10 @@ export default function TripInputForm({ onSubmit, loading, exploreModeHint = fal
         {errors.duration && <p className={errorClass}>{errors.duration}</p>}
       </div>
 
-      {/* Travel style — required */}
+      {/* Travel theme — mandatory */}
       <div>
-        <label htmlFor="style" className={labelClass}>
-          Travel Style <span className="text-red-500">*</span>
+        <label htmlFor="style" className={mandatoryLabelClass}>
+          Travel theme <span className="text-red-500">*</span>
         </label>
         <select
           id="style"
@@ -245,59 +213,43 @@ export default function TripInputForm({ onSubmit, loading, exploreModeHint = fal
           }}
           className={`${inputClass} ${errors.style ? errorBorder : ""}`}
         >
-          <option value="">Select a style…</option>
+          <option value="">Select a theme…</option>
           {TRAVEL_STYLES.map((s) => (
-            <option key={s} value={s}>
-              {s.charAt(0).toUpperCase() + s.slice(1)}
-            </option>
+            <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>
           ))}
         </select>
         {errors.style && <p className={errorClass}>{errors.style}</p>}
       </div>
 
-      {/* Budget tier — required */}
-      <div>
-        <label htmlFor="budget" className={labelClass}>
-          Budget Tier <span className="text-red-500">*</span>
-        </label>
-        <select
-          id="budget"
-          value={budget}
-          onChange={(e) => {
-            setBudget(e.target.value);
-            if (errors.budget) setErrors((prev) => ({ ...prev, budget: undefined }));
-          }}
-          className={`${inputClass} ${errors.budget ? errorBorder : ""}`}
-        >
-          <option value="">Select a budget…</option>
-          {BUDGET_TIERS.map((b) => (
-            <option key={b} value={b}>
-              {b.charAt(0).toUpperCase() + b.slice(1)}
-            </option>
-          ))}
-        </select>
-        {errors.budget && <p className={errorClass}>{errors.budget}</p>}
+      {/* ── Optional fields ───────────────────────────────── */}
+
+      <div className="flex items-center gap-3 pt-1">
+        <div className="h-px flex-1 bg-slate-100" />
+        <span className="text-xs font-medium text-slate-400 uppercase tracking-wide">
+          Add more to personalise your suggestions
+        </span>
+        <div className="h-px flex-1 bg-slate-100" />
       </div>
 
-      {/* Nationality — optional */}
+      {/* Region hint — optional; AI concept (TRIP-014): narrows LLM geographic search space */}
       <div>
-        <label htmlFor="nationality" className={labelClass}>
-          Passport Nationality{" "}
-          <span className="font-normal text-slate-400">(optional — for visa advisory)</span>
+        <label htmlFor="regionHint" className={optionalLabelClass}>
+          Region or vibe
+          <span className="ml-1 font-normal text-slate-400 text-xs">— e.g. Southeast Asia, somewhere warm</span>
         </label>
         <input
-          id="nationality"
+          id="regionHint"
           type="text"
-          placeholder="e.g. Australian"
-          value={nationality}
-          onChange={(e) => setNationality(e.target.value)}
+          placeholder="e.g. Southeast Asia, somewhere warm, coastal"
+          value={regionHint}
+          onChange={(e) => setRegionHint(e.target.value)}
           className={inputClass}
         />
       </div>
 
-      {/* Who's travelling — defaults to solo, no validation error */}
+      {/* Who's travelling — optional, defaults to solo */}
       <div>
-        <label className={labelClass}>Who&apos;s travelling?</label>
+        <label className={optionalLabelClass}>Who&apos;s travelling?</label>
         <div className="grid grid-cols-2 gap-2">
           {PARTY_OPTIONS.map((opt) => (
             <button
@@ -317,6 +269,78 @@ export default function TripInputForm({ onSubmit, loading, exploreModeHint = fal
         </div>
       </div>
 
+      {/* Budget tier — optional */}
+      <div>
+        <label htmlFor="budget" className={optionalLabelClass}>Budget Tier</label>
+        <select
+          id="budget"
+          value={budget}
+          onChange={(e) => setBudget(e.target.value)}
+          className={inputClass}
+        >
+          <option value="">Select a budget…</option>
+          {BUDGET_TIERS.map((b) => (
+            <option key={b} value={b}>{b.charAt(0).toUpperCase() + b.slice(1)}</option>
+          ))}
+        </select>
+      </div>
+
+      {/* Home city — optional; enables domestic/international checkboxes in ExploreView */}
+      <div>
+        <label htmlFor="homeCity" className={optionalLabelClass}>
+          Home city
+          <span className="ml-1 font-normal text-slate-400 text-xs">— filters domestic / international</span>
+        </label>
+        <input
+          id="homeCity"
+          type="text"
+          placeholder="e.g. London, UK"
+          value={homeCity}
+          onChange={(e) => setHomeCity(e.target.value)}
+          className={inputClass}
+        />
+      </div>
+
+      {/* Domestic / international filter — only shown when home city is filled
+          AI concept (TRIP-009): conditional prompt branching — scope changes the LLM's destination pool */}
+      {homeCity.trim() && (
+        <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+          <p className="mb-2 text-xs font-medium text-slate-500 uppercase tracking-wide">
+            Trip type
+          </p>
+          <div className="flex gap-4">
+            {(["domestic", "international"] as const).map((scope) => (
+              <label key={scope} className="flex cursor-pointer items-center gap-2 text-sm text-slate-700">
+                <input
+                  type="checkbox"
+                  checked={exploreScope.includes(scope)}
+                  onChange={() => toggleScope(scope)}
+                  className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                />
+                <span className="capitalize">{scope}</span>
+              </label>
+            ))}
+          </div>
+          <p className="mt-1.5 text-xs text-slate-400">Leave both unchecked for all destinations</p>
+        </div>
+      )}
+
+      {/* Nationality — optional */}
+      <div>
+        <label htmlFor="nationality" className={optionalLabelClass}>
+          Passport Nationality
+          <span className="ml-1 font-normal text-slate-400 text-xs">— for visa advisory</span>
+        </label>
+        <input
+          id="nationality"
+          type="text"
+          placeholder="e.g. Australian"
+          value={nationality}
+          onChange={(e) => setNationality(e.target.value)}
+          className={inputClass}
+        />
+      </div>
+
       <button
         type="submit"
         disabled={loading}
@@ -328,10 +352,10 @@ export default function TripInputForm({ onSubmit, loading, exploreModeHint = fal
               <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
               <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
             </svg>
-            Planning your trip…
+            Finding destinations…
           </span>
         ) : (
-          "Plan My Trip"
+          "Find My Destinations"
         )}
       </button>
     </form>

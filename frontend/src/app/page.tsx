@@ -6,15 +6,16 @@ import type { Itinerary, TripInputs } from "@/types/itinerary";
 import ExploreView from "@/components/ExploreView";
 import ExportButtons from "@/components/ExportButtons";
 import ItineraryView from "@/components/ItineraryView";
-import TripInputForm from "@/components/TripInputForm";
+import ExploreForm from "@/components/ExploreForm";
+import PlanForm from "@/components/PlanForm";
 import TweakInput from "@/components/TweakInput";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
-type AppState = "form" | "exploring" | "itinerary";
+type AppState = "mode-select" | "plan" | "explore-form" | "explore-results" | "itinerary";
 
 export default function Home() {
-  const [appState, setAppState] = useState<AppState>("form");
+  const [appState, setAppState] = useState<AppState>("mode-select");
   const [itinerary, setItinerary] = useState<Itinerary | null>(null);
   const [exploreSuggestions, setExploreSuggestions] = useState<ExploreSuggestions | null>(null);
   const [originalInputs, setOriginalInputs] = useState<TripInputs | null>(null);
@@ -38,7 +39,7 @@ export default function Home() {
       }
       const data: ExploreSuggestions = await res.json();
       setExploreSuggestions(data);
-      setAppState("exploring");
+      setAppState("explore-results");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
     } finally {
@@ -73,11 +74,15 @@ export default function Home() {
   function handleFormSubmit(inputs: TripInputs) {
     setOriginalInputs(inputs);
     if (!inputs.destination) {
-      // Blank destination → Explore Mode
       callExplore(inputs);
     } else {
       callGenerate(inputs);
     }
+  }
+
+  function handleExploreFormSubmit(inputs: TripInputs) {
+    setOriginalInputs(inputs);
+    callExplore(inputs);
   }
 
   function handleExploreSelect(destination: string) {
@@ -119,7 +124,7 @@ export default function Home() {
   }
 
   function handleReset() {
-    setAppState("form");
+    setAppState("mode-select");
     setItinerary(null);
     setExploreSuggestions(null);
     setOriginalInputs(null);
@@ -137,7 +142,7 @@ export default function Home() {
             <span className="text-xl font-bold text-indigo-600">Wander</span>
             <span className="ml-2 text-sm text-slate-400">AI Trip Planner</span>
           </div>
-          {appState !== "form" && (
+          {appState !== "mode-select" && (
             <button
               onClick={handleReset}
               className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm text-slate-600 transition hover:border-slate-400 hover:text-slate-900"
@@ -149,25 +154,61 @@ export default function Home() {
       </header>
 
       <main className="mx-auto max-w-3xl px-6 py-10">
-        {/* Form view */}
-        {appState === "form" && (
+
+        {/* Mode selector — home screen */}
+        {appState === "mode-select" && (
+          <ModeSelector
+            onSelectPlan={() => setAppState("plan")}
+            onSelectExplore={() => setAppState("explore-form")}
+          />
+        )}
+
+        {/* Plan form */}
+        {appState === "plan" && (
           <div className="mx-auto max-w-lg">
+            <button
+              onClick={() => setAppState("mode-select")}
+              className="mb-6 flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-800"
+            >
+              <span>←</span> Back
+            </button>
             <div className="mb-8 text-center">
-              <h1 className="text-3xl font-bold text-slate-900">Plan your next trip</h1>
+              <h1 className="text-3xl font-bold text-slate-900">Plan your trip</h1>
               <p className="mt-2 text-slate-500">
-                Tell us where you want to go — or leave the destination blank and we'll suggest
-                somewhere perfect for you.
+                Tell us where you&apos;re going and we&apos;ll build your itinerary.
               </p>
             </div>
             <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-              <TripInputForm onSubmit={handleFormSubmit} loading={isLoading} />
+              <PlanForm onSubmit={handleFormSubmit} loading={isLoading} />
             </div>
             {error && <ErrorBanner message={error} onDismiss={() => setError(null)} />}
           </div>
         )}
 
-        {/* Explore mode view */}
-        {appState === "exploring" && exploreSuggestions && originalInputs && (
+        {/* Explore form — placeholder until TRIP-014 */}
+        {appState === "explore-form" && (
+          <div className="mx-auto max-w-lg">
+            <button
+              onClick={() => setAppState("mode-select")}
+              className="mb-6 flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-800"
+            >
+              <span>←</span> Back
+            </button>
+            <div className="mb-8 text-center">
+              <h1 className="text-3xl font-bold text-slate-900">Explore destinations</h1>
+              <p className="mt-2 text-slate-500">
+                Tell us what kind of trip you&apos;re after and we&apos;ll suggest the perfect places.
+              </p>
+            </div>
+            <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+              <ExploreForm onSubmit={handleExploreFormSubmit} loading={isLoading} />
+            </div>
+            {error && <ErrorBanner message={error} onDismiss={() => setError(null)} />}
+          </div>
+        )}
+
+        {/* Explore results */}
+        {appState === "explore-results" && exploreSuggestions && originalInputs && (
           <div className="mx-auto max-w-lg">
             <ExploreView
               suggestions={exploreSuggestions.suggestions}
@@ -194,7 +235,54 @@ export default function Home() {
             <TweakInput onSubmit={handleTweak} loading={tweaking} />
           </div>
         )}
+
       </main>
+    </div>
+  );
+}
+
+function ModeSelector({
+  onSelectPlan,
+  onSelectExplore,
+}: {
+  onSelectPlan: () => void;
+  onSelectExplore: () => void;
+}) {
+  return (
+    <div className="mx-auto max-w-lg">
+      <div className="mb-10 text-center">
+        <h1 className="text-3xl font-bold text-slate-900">Where to next?</h1>
+        <p className="mt-2 text-slate-500">Choose how you&apos;d like to start planning.</p>
+      </div>
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        {/* Plan card */}
+        <button
+          onClick={onSelectPlan}
+          className="group rounded-2xl border border-slate-200 bg-white p-6 text-left shadow-sm transition hover:border-indigo-300 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+        >
+          <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-50 text-xl group-hover:bg-indigo-100">
+            🗺️
+          </div>
+          <h2 className="text-base font-semibold text-slate-900">Plan a trip</h2>
+          <p className="mt-1 text-sm text-slate-500">
+            I know where I&apos;m going — build me a day-by-day itinerary.
+          </p>
+        </button>
+
+        {/* Explore card */}
+        <button
+          onClick={onSelectExplore}
+          className="group rounded-2xl border border-slate-200 bg-white p-6 text-left shadow-sm transition hover:border-indigo-300 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+        >
+          <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-50 text-xl group-hover:bg-indigo-100">
+            🧭
+          </div>
+          <h2 className="text-base font-semibold text-slate-900">Explore destinations</h2>
+          <p className="mt-1 text-sm text-slate-500">
+            Help me decide where to go — suggest somewhere that fits my style.
+          </p>
+        </button>
+      </div>
     </div>
   );
 }

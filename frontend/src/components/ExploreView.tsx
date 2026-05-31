@@ -25,8 +25,7 @@ export default function ExploreView({
         <h2 className="text-2xl font-bold text-slate-900">Where should you go?</h2>
         <p className="mt-1 text-slate-500">
           Based on your{" "}
-          <span className="font-medium capitalize">{originalInputs.style}</span> style and{" "}
-          <span className="font-medium capitalize">{originalInputs.budget}</span> budget — here are
+          <span className="font-medium capitalize">{originalInputs.style ?? "your"}</span> style — here are
           three ideas.
         </p>
       </div>

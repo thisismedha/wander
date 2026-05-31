@@ -25,14 +25,30 @@ class Itinerary(BaseModel):
         None,
         description="Advisory visa note if nationality provided, else null",
     )
+    # TRIP-009: contextual calendar reasoning — LLM cross-references dates against holiday knowledge
+    holiday_note: Optional[str] = Field(
+        None,
+        description=(
+            "Lists public holidays at origin or destination during travel window. "
+            "Null if home_city not provided, dates are days-only, or no holidays found."
+        ),
+    )
 
 
 class TripInputs(BaseModel):
     destination: Optional[str] = None
     duration: str
-    style: str
-    budget: str
+    style: Optional[str] = None
+    budget: Optional[str] = None
     nationality: Optional[str] = None
+    # TRIP-010: prompt enrichment — party type shapes accommodation and activity suitability
+    party_type: Literal["solo", "couple", "small_group", "family_with_kids"] = "solo"
+    # TRIP-009: home_city enables domestic/international framing, holiday awareness, visa proxy
+    home_city: Optional[str] = None
+    # TRIP-009: explore_scope filters destination suggestions; None defaults to international (MVP behaviour)
+    explore_scope: Optional[List[Literal["domestic", "international"]]] = None
+    # TRIP-014: free-text region hint scopes destination suggestions geographically
+    region_hint: Optional[str] = None
 
 
 class TweakRequest(BaseModel):

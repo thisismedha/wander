@@ -16,6 +16,8 @@ async def generate_itinerary(inputs: TripInputs) -> Itinerary:
             style=inputs.style,
             budget=inputs.budget,
             nationality=inputs.nationality,
+            party_type=inputs.party_type,
+            home_city=inputs.home_city,
         )
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc)) from exc

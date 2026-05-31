@@ -43,13 +43,15 @@ class ItineraryService:
         self,
         destination: Optional[str],
         duration: str,
-        style: str,
-        budget: str,
+        style: Optional[str],
+        budget: Optional[str],
         nationality: Optional[str],
+        party_type: str = "solo",
+        home_city: Optional[str] = None,
     ) -> Itinerary:
         prompt = ChatPromptTemplate.from_messages([
             ("system", SYSTEM_PROMPT),
-            ("human", build_user_prompt(destination, duration, style, budget, nationality)),
+            ("human", build_user_prompt(destination, duration, style, budget, nationality, party_type, home_city)),
         ])
         chain = prompt | self.structured_llm
         return await chain.ainvoke({})
@@ -57,13 +59,16 @@ class ItineraryService:
     async def explore(
         self,
         duration: str,
-        style: str,
-        budget: str,
+        style: Optional[str],
+        budget: Optional[str],
         nationality: Optional[str],
+        home_city: Optional[str] = None,
+        explore_scope: Optional[list] = None,
+        region_hint: Optional[str] = None,
     ) -> ExploreSuggestions:
         messages = [
             SystemMessage(content=EXPLORE_SYSTEM_PROMPT),
-            HumanMessage(content=build_explore_prompt(duration, style, budget, nationality)),
+            HumanMessage(content=build_explore_prompt(duration, style, budget, nationality, home_city, explore_scope, region_hint)),
         ]
         return await self.explore_llm.ainvoke(messages)
 
@@ -73,7 +78,6 @@ class ItineraryService:
         original_inputs: dict,
         instruction: str,
     ) -> Itinerary:
-        # Use messages directly — ChatPromptTemplate would misparse the JSON's {} as template vars
         messages = [
             SystemMessage(content=SYSTEM_PROMPT),
             HumanMessage(content=build_tweak_prompt(current_itinerary, original_inputs, instruction)),
