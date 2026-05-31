@@ -217,6 +217,7 @@ export default function Home() {
               onSelect={handleExploreSelect}
               onRefresh={handleExploreRefresh}
               refreshing={exploring}
+              generating={generating}
             />
             {generating && (
               <div className="mt-6 text-center text-sm text-slate-500">

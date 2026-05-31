@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import type { DestinationSuggestion } from "@/types/explore";
 import type { TripInputs } from "@/types/itinerary";
 
@@ -9,9 +10,20 @@ interface Props {
   onSelect: (destination: string) => void;
   onRefresh: () => void;
   refreshing: boolean;
+  generating: boolean;
 }
 
-function SuggestionCard({ s, onSelect }: { s: DestinationSuggestion; onSelect: (d: string) => void }) {
+function SuggestionCard({
+  s,
+  onSelect,
+  isSelected,
+  anySelected,
+}: {
+  s: DestinationSuggestion;
+  onSelect: (d: string) => void;
+  isSelected: boolean;
+  anySelected: boolean;
+}) {
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:border-indigo-300 hover:shadow-md">
       <div className="flex items-start justify-between gap-4">
@@ -26,9 +38,20 @@ function SuggestionCard({ s, onSelect }: { s: DestinationSuggestion; onSelect: (
         </div>
         <button
           onClick={() => onSelect(s.destination)}
-          className="shrink-0 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+          disabled={anySelected}
+          className="shrink-0 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
         >
-          Plan this trip
+          {isSelected ? (
+            <span className="flex items-center gap-2">
+              <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+              </svg>
+              Planning…
+            </span>
+          ) : (
+            "Plan this trip"
+          )}
         </button>
       </div>
     </div>
@@ -41,11 +64,20 @@ export default function ExploreView({
   onSelect,
   onRefresh,
   refreshing,
+  generating,
 }: Props) {
+  const [selectedDestination, setSelectedDestination] = useState<string | null>(null);
+
+  function handleSelect(destination: string) {
+    setSelectedDestination(destination);
+    onSelect(destination);
+  }
+
   const isSplit = suggestions.some((s) => s.trip_type != null);
   const domestic = isSplit ? suggestions.filter((s) => s.trip_type === "domestic") : [];
   const international = isSplit ? suggestions.filter((s) => s.trip_type === "international") : [];
   const count = suggestions.length;
+  const anySelected = generating && selectedDestination !== null;
 
   return (
     <div className="space-y-6">
@@ -65,19 +97,25 @@ export default function ExploreView({
           {domestic.length > 0 && (
             <div className="space-y-3">
               <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-400">Domestic</h3>
-              {domestic.map((s, idx) => <SuggestionCard key={idx} s={s} onSelect={onSelect} />)}
+              {domestic.map((s, idx) => (
+                <SuggestionCard key={idx} s={s} onSelect={handleSelect} isSelected={selectedDestination === s.destination && generating} anySelected={anySelected} />
+              ))}
             </div>
           )}
           {international.length > 0 && (
             <div className="space-y-3">
               <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-400">International</h3>
-              {international.map((s, idx) => <SuggestionCard key={idx} s={s} onSelect={onSelect} />)}
+              {international.map((s, idx) => (
+                <SuggestionCard key={idx} s={s} onSelect={handleSelect} isSelected={selectedDestination === s.destination && generating} anySelected={anySelected} />
+              ))}
             </div>
           )}
         </div>
       ) : (
         <div className="space-y-4">
-          {suggestions.map((s, idx) => <SuggestionCard key={idx} s={s} onSelect={onSelect} />)}
+          {suggestions.map((s, idx) => (
+            <SuggestionCard key={idx} s={s} onSelect={handleSelect} isSelected={selectedDestination === s.destination && generating} anySelected={anySelected} />
+          ))}
         </div>
       )}
 
