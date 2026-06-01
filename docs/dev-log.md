@@ -39,6 +39,49 @@
 
 ---
 
+## 2026-06-01 — Session 8
+
+**Phase:** Build (deployment prep) + Backlog
+**Release:** V1.1 → deployment
+**Sprint:** Deployment sprint + backlog grooming
+**Active Story IDs:** No formal story ID — deployment, backlog, content
+
+### What was completed
+- **Dockerfile** added to `backend/` for Cloud Run deployment (python:3.11-slim, port 8080).
+- **CORS** tightened in `backend/main.py` — replaced wildcard with explicit allowlist (localhost + Vercel domain).
+- **Deployment guide** written — full step-by-step for Cloud Run (backend) and Vercel (frontend). Blocked on `gcloud auth login` which requires an interactive terminal. Steps documented and ready for user to run.
+- **`docs/thought-leadership-topics.md`** created — full map of 17 AI literacy, SDLC, tech stack, and architecture topics from V1/V1.1, structured for use in Claude Cowork content pipeline.
+- **Backlog additions:**
+  - Dining suggestions within the itinerary (V2)
+  - Save itineraries to bucket list / wishlist (V3)
+  - Map Explore Mode — browse and click to plan (V2)
+  - TRIP-018: Map Mode — click a destination to plan (V2, fully specced with ACs and dependencies)
+- All changes merged to `main` and pushed.
+
+### In progress
+- **Deployment blocked** — `gcloud auth login` requires interactive terminal. User needs to run auth + deploy steps manually (documented above). Backend Cloud Run URL needed before Vercel frontend deploy can be completed.
+
+### Blockers / open questions
+- `gcloud auth login` must be run in a local terminal (not Claude Code). Steps are ready in the session above.
+- Once Cloud Run URL is known: update `NEXT_PUBLIC_API_URL` in Vercel and lock down CORS to the real Vercel domain.
+- TRIP-018 (Map Mode) blocked on Mapbox account + public token (`pk.`).
+
+### Decisions made
+- Map Mode flow: click → reverse geocode to city → pre-fill PlanForm (not instant generate, not explore).
+- Map Mode library: Mapbox GL JS via `react-map-gl` (free tier, best React support).
+- CORS: explicit allowlist now, not wildcard — update after Vercel URL is known.
+
+### AI concepts touched
+- None this session.
+
+### Next session focus
+1. Complete deployment — run `gcloud auth login` + Cloud Run build/deploy in terminal, then Vercel deploy
+2. Update CORS with real Vercel URL + redeploy backend
+3. End-to-end smoke test on production URLs
+4. Pick up next V1 story — TRIP-V1-02 (smart timing) or TRIP-003 (visa advisory)
+
+---
+
 ## 2026-05-31 — Session 7
 
 **Phase:** Build (refinement)
